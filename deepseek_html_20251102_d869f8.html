@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加入WhatsApp群组</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 欢迎加入我们的WhatsApp群组</h1>
+            <p>与志同道合的朋友一起交流分享</p>
+        </div>
+        
+        <div class="content">
+            <div class="features">
+                <div class="feature">
+                    <span class="icon">💬</span>
+                    <h3>实时交流</h3>
+                    <p>与群成员即时沟通</p>
+                </div>
+                <div class="feature">
+                    <span class="icon">👥</span>
+                    <h3>社区互动</h3>
+                    <p>认识新朋友，扩展人脉</p>
+                </div>
+                <div class="feature">
+                    <span class="icon">📢</span>
+                    <h3>最新资讯</h3>
+                    <p>获取第一手信息</p>
+                </div>
+            </div>
+            
+            <div class="join-section">
+                <button id="joinButton" class="join-btn">
+                    📱 立即加入WhatsApp群组
+                </button>
+                <p class="note">已有 <span id="clickCount">0</span> 人点击加入</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('joinButton').addEventListener('click', function() {
+            // 记录点击
+            const clickData = {
+                timestamp: new Date().toLocaleString('zh-CN'),
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                platform: navigator.platform,
+                referrer: document.referrer || '直接访问'
+            };
+            
+            // 保存到localStorage
+            trackClick(clickData);
+            
+            // 更新点击计数显示
+            updateClickCount();
+            
+            // 重定向到WhatsApp（替换为你的真实链接）
+            const whatsappUrl = "https://chat.whatsapp.com/你的真实群链接";
+            window.open(whatsappUrl, '_blank');
+            
+            // 显示成功消息
+            this.textContent = '✅ 正在跳转...';
+            this.style.background = '#28a745';
+        });
+
+        // 初始化显示点击次数
+        updateClickCount();
+    </script>
+</body>
+</html>

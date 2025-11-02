@@ -1,0 +1,7 @@
+whatsapp-tracker/
+├── index.html          # 主页面（跟踪点击）
+├── dashboard.html      # 数据查看面板
+├── script.js          # 数据处理逻辑
+├── style.css          # 样式文件
+├── data.json          # 模拟数据文件
+└── README.md

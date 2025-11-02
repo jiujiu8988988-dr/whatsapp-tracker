@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>点击统计面板</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 WhatsApp群链接点击统计</h1>
+            <p>基于浏览器本地存储的点击数据分析</p>
+        </div>
+
+        <div class="stats" id="stats">
+            <!-- 统计信息动态加载 -->
+        </div>
+
+        <div class="controls">
+            <button onclick="exportData()" class="btn">📥 导出数据</button>
+            <button onclick="clearData()" class="btn btn-danger">🗑️ 清空数据</button>
+            <button onclick="loadData()" class="btn">🔄 刷新数据</button>
+            <label class="auto-refresh">
+                <input type="checkbox" id="autoRefresh" checked> 自动刷新 (每30秒)
+            </label>
+        </div>
+
+        <div class="last-update" id="lastUpdate">最后更新: --</div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>点击时间</th>
+                        <th>设备平台</th>
+                        <th>浏览器语言</th>
+                        <th>来源</th>
+                        <th>用户代理</th>
+                    </tr>
+                </thead>
+                <tbody id="clickData">
+                    <tr><td colspan="6" style="text-align: center;">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="chart-container">
+            <h3>📈 点击时间分布</h3>
+            <div id="timeChart" class="chart">
+                <!-- 时间分布图表 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let refreshInterval;
+
+        function loadData() {
+            const clicks = getClickData();
+            updateStats(clicks);
+            updateTable(clicks);
+            updateTimeChart(clicks);
+            document.getElementById('lastUpdate').textContent = 
+                `最后更新: ${new Date().toLocaleString('zh-CN')}`;
+        }
+
+        function updateStats(clicks) {
+            const totalClicks = clicks.length;
+            const todayClicks = clicks.filter(click => {
+                const clickDate = new Date(click.timestamp).toDateString();
+                return clickDate === new Date().toDateString();
+            }).length;
+            
+            const platforms = [...new Set(clicks.map(click => click.platform))].length;
+            const languages = [...new Set(clicks.map(click => click.language))].length;
+
+            document.getElementById('stats').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${totalClicks}</div>
+                    <div class="stat-label">总点击量</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${todayClicks}</div>
+                    <div class="stat-label">今日点击</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${platforms}</div>
+                    <div class="stat-label">设备类型</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${languages}</div>
+                    <div class="stat-label">语言类型</div>
+                </div>
+            `;
+        }
+
+        function updateTable(clicks) {
+            const tbody = document.getElementById('clickData');
+            
+            if (clicks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">暂无数据</td></tr>';
+                return;
+            }
+
+            // 按时间倒序排列
+            clicks.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            tbody.innerHTML = clicks.map((click, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${click.timestamp}</td>
+                    <td><span class="badge">${getPlatformIcon(click.platform)} ${click.platform}</span></td>
+                    <td>${click.language}</td>
+                    <td>${click.referrer === '直接访问' ? '🔗 直接访问' : '🌐 外部链接'}</td>
+                    <td title="${click.userAgent}">
+                        ${getBrowserInfo(click.userAgent)}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateTimeChart(clicks) {
+            const last24Hours = Array(24).fill(0);
+            const now = new Date();
+            
+            clicks.forEach(click => {
+                const clickTime = new Date(click.timestamp);
+                const hoursAgo = Math.floor((now - clickTime) / (1000 * 60 * 60));
+                
+                if (hoursAgo < 24) {
+                    last24Hours[23 - hoursAgo]++;
+                }
+            });
+            
+            const chart = document.getElementById('timeChart');
+            chart.innerHTML = `
+                <div class="chart-bars">
+                    ${last24Hours.map((count, hour) => `
+                        <div class="chart-bar-container">
+                            <div class="chart-bar" style="height: ${Math.max(count * 10, 5)}px;" 
+                                 title="${23 - hour}小时前: ${count}次点击">
+                            </div>
+                            <div class="chart-label">${23 - hour}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function getPlatformIcon(platform) {
+            if (platform.includes('Win')) return '💻';
+            if (platform.includes('Mac')) return '🍎';
+            if (platform.includes('Linux')) return '🐧';
+            if (platform.includes('iPhone') || platform.includes('Android')) return '📱';
+            return '🖥️';
+        }
+
+        function getBrowserInfo(userAgent) {
+            if (userAgent.includes('Chrome')) return 'Chrome';
+            if (userAgent.includes('Firefox')) return 'Firefox';
+            if (userAgent.includes('Safari')) return 'Safari';
+            if (userAgent.includes('Edge')) return 'Edge';
+            return '其他浏览器';
+        }
+
+        function exportData() {
+            const clicks = getClickData();
+            const dataStr = JSON.stringify(clicks, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `whatsapp-clicks-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        function clearData() {
+            if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+                localStorage.removeItem('whatsappClicks');
+                localStorage.removeItem('clickCount');
+                loadData();
+                alert('数据已清空');
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            
+            document.getElementById('autoRefresh').addEventListener('change', function(e) {
+                if (e.target.checked) {
+                    refreshInterval = setInterval(loadData, 30000);
+                } else {
+                    clearInterval(refreshInterval);
+                }
+            });
+            
+            refreshInterval = setInterval(loadData, 30000);
+        });
+    </script>
+</body>
+</html>
